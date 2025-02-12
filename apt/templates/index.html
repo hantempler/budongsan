@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+
+{% load static %}
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>메인페이지</title>
+    <!-- Folium CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
+    <style>
+        /* box-sizing을 border-box로 설정하여 padding과 border가 크기에 영향을 미치지 않도록 함 */
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f9fafb;
+            color: #333;
+        }
+
+        nav {
+            background-color: #2c3e50;
+            color: white;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        nav .logo {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        nav ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            gap: 20px;
+        }
+
+        nav ul li {
+            display: inline;
+        }
+
+        nav ul li a {
+            color: white;
+            text-decoration: none;
+            font-size: 16px;
+        }
+
+        nav ul li a:hover {
+            text-decoration: underline;
+        }
+
+        h1 {
+            display: inline-block;
+            margin-top: 40px;
+            color: #2c3e50;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: row;
+            gap: 30px;
+            margin: 30px auto;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        .map-container, .table-container {
+            flex: 1;  /* 두 영역의 크기가 같도록 설정 */
+            border-radius: 12px;
+            background-color: #fff;
+            border: 2px solid #ddd;
+            margin: 0 auto;
+        }
+
+        .map-container {
+            height: 800px;
+        }
+
+        .table-container {
+            padding: 20px;
+            overflow: hidden;
+            height: 800px;  /* 지도와 같은 높이로 설정 */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            text-align: center; /* 가운데 정렬 */
+            padding: 12px; /* 일정한 여백 */
+            border: 1px solid #ddd;
+            font-size: 16px;
+        }
+
+        th {
+            background-color: #3498db;
+            color: white;
+        }
+
+        td {
+            background-color: #f9f9f9;
+        }
+
+        .selection-container select {
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        /* 내림 버튼 스타일 */
+        #scroll-down-btn {
+            align-self: center;
+            background-color: #3498db;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #scroll-down-btn:hover {
+            background-color: #2980b9;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 네비게이션 바 -->
+    <nav>
+        <div class="logo">아파트 투자 도우미</div>
+        <ul>
+            <li><a href="{% url 'main_page'%}">메인페이지</a></li>
+            <li><a href="{% url 'apt_list'%}">투자매물탐색</a></li>
+            <li><a href="{% url 'location_selector'%}">아파트검색</a></li>
+            <li><a href="{% url 'map'%}">아파트지도</a></li>            
+            <li><a href="{% url 'region_graph'%}">아파트그래프</a></li>
+        </ul>
+    </nav>
+
+    <!-- 현대적인 이미지 추가 -->
+    <div style="text-align: center; margin-top: 20px;">
+        <img src="{% static 'image/apt.jpg' %}" alt="현대적인 이미지" style="width: 80%; max-width: 1000px; border-radius: 10px;">
+    </div>
+</body>

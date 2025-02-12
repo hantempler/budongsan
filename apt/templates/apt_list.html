@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>아파트리스트</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+        }
+
+        nav {
+            background-color: #2c3e50;
+            color: white;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        nav .logo {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        nav ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            gap: 20px;
+        }
+
+        nav ul li {
+            display: inline;
+        }
+
+        nav ul li a {
+            color: white;
+            text-decoration: none;
+            font-size: 16px;
+        }
+
+        nav ul li a:hover {
+            text-decoration: underline;
+        }
+
+        h1 {
+            display: inline-block;
+            margin-top: 40px;
+            color: #2c3e50;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+
+        header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+        }
+        .container {
+            display: flex;
+            flex-wrap: nowrap;
+            padding: 20px;
+        }
+        .search-container {
+            width: 15%; /* 검색 폼의 너비 */
+            padding: 20px;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            margin-right: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .search-container div {
+            margin-bottom: 10px;
+        }
+        .search-container label {
+            display: block;
+            width: 100%;
+            margin-bottom: 5px;
+        }
+        .search-container input {
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            width: 90%;
+        }
+        .search-container button {
+            padding: 10px 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color:  #2c3e50;
+            color: white;
+            cursor: pointer;
+            width: 100%;
+        }
+        .search-container button:hover {
+            background-color: #2c3e50;
+        }
+        .table-container {
+            width: 90%; /* 테이블의 너비 */
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table th, table td {
+            padding: 10px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+        table th {
+            background-color: #f4f4f4;
+        }
+        table td {
+            background-color: white;
+        }
+        .no-results {
+            text-align: center;
+            font-size: 18px;
+            color: #2c3e50;
+            margin: 300px 0;
+        }
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+        a:hover {
+            text-decoration: underline;
+            color: #007bff;
+        }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <div class="logo">아파트 투자 도우미</div>
+        <ul>
+            <li><a href="{% url 'main_page'%}">메인페이지</a></li>
+            <li><a href="{% url 'apt_list'%}">투자매물탐색</a></li>
+            <li><a href="{% url 'location_selector'%}">아파트검색</a></li>
+            <li><a href="{% url 'map'%}">아파트지도</a></li>            
+            <li><a href="{% url 'region_graph'%}">아파트그래프</a></li>
+        </ul>
+    </nav>
+
+<div class="container">
+    <!-- 검색 폼 -->
+    <div class="search-container">
+        <form method="GET">
+            <div>
+                <label for="roadAddressPrefix">시군구:</label>
+                <input type="text" id="roadAddressPrefix" name="roadAddressPrefix" value="{{ search_prefix }}" placeholder="시군구 입력" required>
+            </div>
+            <div>
+                <label for="roadAddress">도로명:</label>
+                <input type="text" id="roadAddress" name="roadAddress" value="{{ search_address }}" placeholder="도로명 입력">
+            </div>
+            <div>
+                <label for="complexName">단지명:</label>
+                <input type="text" id="complexName" name="complexName" value="{{ search_name }}" placeholder="단지명 입력">
+            </div>
+            <div>
+                <label for="max_price_percentage">최고가 대비(%) :</label>
+                <input type="number" id="max_price_percentage" name="max_price_percentage" value="{{ max_price_percentage }}" placeholder="최고가 대비 % 미만">
+            </div>
+            <div>
+                <label for="jeonse_price_percentage">전세가율 (%) :</label>
+                <input type="number" id="jeonse_price_percentage" name="jeonse_price_percentage" value="{{ jeonse_price_percentage }}" placeholder="전세가 비율 입력">
+            </div>
+            <div>
+                <label for="totalHouseholdCount">최소 세대수:</label>
+                <input type="number" id="totalHouseholdCount" name="totalHouseholdCount" value="{{ total_household }}" placeholder="최소 세대수">
+            </div>
+            <div>
+                <label for="useApproveYmd">준공년도:</label>
+                <input type="number" id="useApproveYmd" name="useApproveYmd" value="{{ useApproveYmd }}" placeholder="몇년이후">
+            </div>
+            <div>
+                <label for="exclusiveArea">전용면적 이상:</label>
+                <input type="number" id="exclusiveArea" name="exclusiveArea" value="{{ exclusive_area }}" placeholder="전용면적 이상 (㎡)">
+            </div>
+            <button type="submit">검색</button>
+        </form>
+    </div>
+
+    <!-- 테이블 -->
+    <div class="table-container">
+        {% if apt_data %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>단지명</th>
+
+                        <th>전용면적</th>
+                        <th>준공년도</th>
+                        <th>총세대수</th>
+                        <th>최근 거래일</th>
+                        <th>최근 매매가(억원)</th>
+                        <th>최근 전세가(억원)</th>
+                        <th>종전 최고가(억원)</th>
+                        <th>최고가대비(%)</th>
+                        <th>전세가대비(%)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for apt_info in apt_data %}
+                        {% for detail in apt_info.details %}
+                            <tr>
+                                <td>
+                                    <a href="{% url 'apt_info' apt_info.apt.complexNo %}">
+                                        {{ apt_info.apt.complexName }}
+                                    </a>
+                                </td>
+
+                                <td>
+                                    <a href="{% url 'apt_detail' detail.detail.complexno_py %}">                         
+                                        {{ detail.detail.exclusiveArea|floatformat:1 }}m<sup>3</sup></td>
+                                    </a>                                    
+                                <td>{{ apt_info.apt.useApproveYmd }}년</td>
+                                <td>{{ apt_info.apt.totalHouseholdCount }}</td>                                
+                                <td>{{ detail.recent_purchase_date|default:"-" }}</td>
+                                <td>{{ detail.latest_purchase_price|floatformat:1 }}</td>
+                                <td>{{ detail.latest_jeonse_price|floatformat:1 }}</td>
+                                <td>{{ detail.max_price|floatformat:1 }}</td>
+                                <td>
+                                    {% if detail.purchase_to_max_ratio %}
+                                        {{ detail.purchase_to_max_ratio|floatformat:1 }}%
+                                    {% else %}
+                                        - 
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if detail.jeonse_to_purchase_ratio %}
+                                        {{ detail.jeonse_to_purchase_ratio|floatformat:1 }}%
+                                    {% else %}
+                                        - 
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% elif no_results %}
+            <div class="no-results">검색 조건에 맞는 결과가 없습니다.</div>
+        {% else %}
+            <div class="no-results">좌측의 검색 조건을 입력해 주세요.</div>
+        {% endif %}
+    </div>
+</div>
+
+</body>
+</html>

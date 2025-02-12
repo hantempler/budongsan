@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>지역 선택</title>
+    
+    <style>
+
+        nav {
+            position: fixed;
+            top: 0;
+            left: 10;
+            width: 100%;
+            background-color: #2c3e50;
+            color: #fff;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-sizing: border-box;
+        }
+
+        nav .logo {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        nav ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            gap: 20px;
+        }
+
+        nav ul li {
+            display: inline;
+        }
+
+        nav ul li a {
+            color: #fff;
+            text-decoration: none;
+            font-size: 16px;
+        }
+
+        nav ul li a:hover {
+            text-decoration: underline;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            padding-top: 60px; /* 네비게이션 바 높이만큼 추가 */
+        }
+
+        .container {
+            display: flex;
+            width: 80%;
+            gap: 20px;
+        }
+
+        .left-panel {
+            width: 300px; /* 고정 크기 설정 */
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            background-color: #f9f9f9;
+        }
+
+        .right-panel {
+            width: calc(100% - 320px); /* 좌측 패널(300px) + gap(20px)을 제외한 나머지 */
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            background-color: #fff;
+        }
+
+        .reset-button {
+            background-color: #ff4d4d;
+            color: white;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .dropdown {
+            width: 100%;
+            padding: 10px;
+            font-size: 14px;
+        }
+
+        #map {
+            width: 100%;
+            height: 400px;
+            margin-top: 20px;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+        }
+
+    </style>
+
+    <script>
+        function updateSelection(selectElement, level) {
+            let selectedValue = selectElement.value;
+            if (selectedValue) {
+                let url = new URL(window.location.href);
+                
+                if (level === 'city') {
+                    url.searchParams.set('city_code', selectedValue);
+                    url.searchParams.delete('district_code');
+                    url.searchParams.delete('neighborhood_code');
+                } else if (level === 'district') {
+                    url.searchParams.set('district_code', selectedValue);
+                    url.searchParams.delete('neighborhood_code');
+                } else if (level === 'neighborhood') {
+                    url.searchParams.set('neighborhood_code', selectedValue);
+                }
+
+                window.location.href = url.toString();
+            }
+        }
+
+        function resetFilters() {
+            window.location.href = "{% url 'region_graph' %}";
+        }
+
+    </script>
+</head>
+
+<body>
+
+    <!-- 네비게이션 바 -->
+
+    <nav>
+        <div class="logo">아파트 투자 도우미</div>
+        <ul>
+            <li><a href="{% url 'main_page'%}">메인페이지</a></li>
+            <li><a href="{% url 'apt_list'%}">투자매물탐색</a></li>
+            <li><a href="{% url 'location_selector'%}">아파트검색</a></li>
+            <li><a href="{% url 'map'%}">아파트지도</a></li>            
+            <li><a href="{% url 'region_graph'%}">아파트그래프</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <!-- 왼쪽 패널 -->
+        <div class="left-panel">
+            <h2>도시 목록</h2>
+            <select class="dropdown" onchange="updateSelection(this, 'city');">
+                <option value="">도시 선택</option>
+                {% for city in cities %}
+                    <option value="{{ city.city_code }}" {% if selected_city and selected_city.city_code == city.city_code %}selected{% endif %}>
+                        {{ city.city_name }}
+                    </option>
+                {% endfor %}
+            </select>
+
+            <h2>시군구 목록</h2>
+            <select class="dropdown" onchange="updateSelection(this, 'district');">
+                <option value="">시군구 선택</option>
+                {% for district in districts %}
+                    <option value="{{ district.district_code }}" {% if selected_district and selected_district.district_code == district.district_code %}selected{% endif %}>
+                        {{ district.district_name }}
+                    </option>
+                {% endfor %}
+            </select>
+
+            <button class="reset-button" onclick="resetFilters()">필터 초기화</button>
+        </div>
+        <div class="right-panel">
+            {% if error %}
+                <h2>오류</h2>
+                <p>{{ error }}</p>
+            {% else %}
+                <div class="chart-container" id="sales-graph">
+                    <h2>매매지수 그래프</h2>
+                    <img src="data:image/png;base64,{{ img_str1 }}" alt="매매지수 그래프">
+                </div>
+                <div class="chart-container" id="rental-graph">
+                    <h2>전세지수 그래프</h2>
+                    <img src="data:image/png;base64,{{ img_str2 }}" alt="전세지수 그래프">
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

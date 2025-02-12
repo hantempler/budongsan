@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>아파트 지수 지도</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
+    <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+        html, body {
+            margin: 0;
+            padding: 0;
+            background-color: #f9fafb;
+            color: #333;
+        }
+        nav {
+            background-color: #2c3e50;
+            color: white;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        nav .logo {
+            font-size: 20px;
+            font-weight: bold;
+        }
+        nav ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            gap: 20px;
+        }
+        nav ul li a {
+            color: white;
+            text-decoration: none;
+            font-size: 16px;
+        }
+        nav ul li a:hover {
+            text-decoration: underline;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 30px auto;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+        .selection-container {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .selection-container label {
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .selection-container select, .selection-container input, .selection-container button {
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            height: 40px;  /* 높이를 동일하게 설정 */
+        }
+        .view-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            cursor: pointer;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            height: 40px; /* 버튼 높이 */
+            display: flex;  /* 플렉스 박스를 사용하여 중앙 정렬 */
+            align-items: center;  /* 수직 중앙 정렬 */
+            justify-content: center;  /* 수평 중앙 정렬 */
+        }
+        
+        button:hover {
+            background-color: #2980b9;
+        }
+        .map-container, .table-container, .graph-container {
+            background-color: #fff;
+            border: 2px solid #ddd;
+            border-radius: 12px;
+            padding: 20px;
+            display: none;
+        }
+        .map-container {
+            height: 750px;
+            display: block;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            text-align: center;
+            padding: 12px;
+            border: 1px solid #ddd;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+        }
+    </style>
+    <script>
+        function toggleView(view) {
+            document.querySelector('.map-container').style.display = (view === 'map') ? 'block' : 'none';
+            document.querySelector('.table-container').style.display = (view === 'table') ? 'block' : 'none';
+            document.querySelector('.graph-container').style.display = (view === 'graph') ? 'block' : 'none';
+        }
+
+        window.onload = function() {
+            toggleView('map');
+            const savedDate = localStorage.getItem('selectedDate');
+            if (savedDate) {
+                const [savedYear, savedMonth] = savedDate.split('-');
+                document.getElementById('year-select').value = savedYear;
+                document.getElementById('month-select').value = savedMonth;
+            }
+        };
+
+        function saveDate() {
+            const selectedYear = document.getElementById('year-select').value;
+            const selectedMonth = document.getElementById('month-select').value;
+            localStorage.setItem('selectedDate', `${selectedYear}-${selectedMonth}`);
+        }
+    </script>
+</head>
+<body>
+    <nav>
+        <div class="logo">아파트 투자 도우미</div>
+        <ul>
+            <li><a href="{% url 'main_page'%}">메인페이지</a></li>
+            <li><a href="{% url 'apt_list'%}">투자매물탐색</a></li>
+            <li><a href="{% url 'location_selector'%}">아파트검색</a></li>
+            <li><a href="{% url 'map'%}">아파트지도</a></li>            
+            <li><a href="{% url 'region_graph'%}">아파트그래프</a></li>
+        </ul>
+    </nav>
+    <div class="container">
+        <form method="GET" class="selection-container" onsubmit="saveDate()">
+            <label for="year-select">연도 선택:</label>
+            <select id="year-select" name="year">
+                <!-- JavaScript로 동적으로 연도 목록을 생성할 것입니다. -->
+            </select>
+
+            <label for="month-select">월 선택:</label>
+            <select id="month-select" name="month">
+                <!-- JavaScript로 동적으로 월 목록을 생성할 것입니다. -->
+            </select>
+
+            <label for="data_type">데이터 선택:</label>
+            <select id="data_type" name="data_type">
+                <option value="purchase_jisu" {% if data_type == 'purchase_jisu' %}selected{% endif %}>매매지수(KB)</option>
+                <option value="purchase_jisu_chage" {% if data_type == 'purchase_jisu_change' %}selected{% endif %}>매매지수(KB) 증감율</option>
+                <option value="jeonse_jisu" {% if data_type == 'jeonse_jisu' %}selected{% endif %}>전세지수(KB)</option>
+                <option value="jeonse_jisu_chage" {% if data_type == 'jeonse_jisu_change' %}selected{% endif %}>전세지수(KB) 증감율</option>
+                <option value="purchase_py" {% if data_type == 'purchase_py' %}selected{% endif %}>매매 평당가</option>
+                <option value="purchase_py_chage" {% if data_type == 'purchase_py_change' %}selected{% endif %}>매매 평당가 증감율</option>
+                <option value="jeonse_py" {% if data_type == 'jeonse_py' %}selected{% endif %}>전세 평당가</option>
+                <option value="jeonse_py" {% if data_type == 'jeonse_py_change' %}selected{% endif %}>전세 평당가 증감율</option>
+            </select>
+            <button type="submit">검색</button>
+            <div class="view-buttons">
+                <button type="button" onclick="toggleView('map')">지도 보기</button>
+                <button type="button" onclick="toggleView('graph')">그래프 보기</button>
+                <button type="button" onclick="toggleView('table')">테이블 보기</button>
+            </div>
+        </form>
+        <div class="map-container">
+            <h2>{{ data_type }}</h2>
+            <iframe src="{% static 'maps/apt_jisu_map.html' %}" width="100%" height="90%"></iframe>
+        </div>
+        <div class="table-container">
+            <h2>{{ data_type }}</h2>
+            {{ selected_table | safe}}
+            <!-- {% if data_type == "purchase_jisu" %}
+                {{ purchase_jisu|safe }}
+            {% elif data_type == "purchase_jisu_change" %}
+                {{ purchase_jisu|safe }}
+            {% elif data_type == "jeonse_jisu" %}
+                {{ jeonse_jisu|safe }}
+            {% elif data_type == "purchase_jisu_change" %}
+                {{ jeonse_jisu|safe }}
+            {% elif data_type == "purchase_py" %}
+                {{ purchase_py|safe }}
+            {% elif data_type == "jeonse_py" %}
+                {{ jeonse_py|safe }}
+            {% endif %} -->
+        </div>
+        <div class="graph-container">
+            <h3>{{ data_type }} 변화율</h3>
+            <img src="data:image/png;base64,{{ graph_image }}" alt="{{ data_type }} 변화율 그래프">
+        </div>
+    </div>
+    <script>
+        // 연도 드롭다운을 동적으로 생성
+        window.onload = function() {
+            const yearSelect = document.getElementById('year-select');
+            const monthSelect = document.getElementById('month-select');
+            
+            // 연도 목록을 2020년부터 2030년까지 동적으로 생성
+            for (let year = 2011; year <= 2025; year++) {
+                let option = document.createElement('option');
+                option.value = year;
+                option.textContent = year;
+                yearSelect.appendChild(option);
+            }
+
+            // 월 목록을 1월부터 12월까지 동적으로 생성
+            for (let month = 1; month <= 12; month++) {
+                let option = document.createElement('option');
+                option.value = month;
+                option.textContent = month;
+                monthSelect.appendChild(option);
+            }
+
+            // 기존에 저장된 날짜를 로드하여 선택값으로 설정
+            const savedDate = localStorage.getItem('selectedDate');
+            if (savedDate) {
+                const [savedYear, savedMonth] = savedDate.split('-');
+                yearSelect.value = savedYear;
+                monthSelect.value = savedMonth;
+            }
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ apt_list.complexName }}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@splidejs/splide@latest/dist/css/splide.min.css">
+    <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=330c7a084d665fce38080fb6e0a4c493"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@splidejs/splide@latest/dist/js/splide.min.js"></script>
+
+    <style>
+        /* box-sizing을 border-box로 설정하여 padding과 border가 크기에 영향을 미치지 않도록 함 */
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        nav {
+            background-color: #2c3e50;
+            color: #fff;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        nav .logo {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        nav ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            gap: 20px;
+        }
+
+        nav ul li {
+            display: inline;
+        }
+
+        nav ul li a {
+            color: #fff;
+            text-decoration: none;
+            font-size: 16px;
+        }
+
+        nav ul li a:hover {
+            text-decoration: underline;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f9fafb;
+            color: #333;
+            display: block;
+            justify-content: center;
+            align-items: flex-start;
+            height: 100vh;
+        }
+
+        .container {
+            display: flex;
+            justify-content: center; /* 중앙 정렬 */
+            align-items: flex-start; /* 위쪽 정렬 */
+            width: 80%;
+            margin: 20px auto 0; /* 중앙 정렬 */
+            gap: 20px;
+            min-height: 100vh;
+        }
+
+        .left-panel {
+            width: 300px; /* 고정 크기 설정 */
+            flex-shrink: 0; /* 크기가 줄어들지 않도록 설정 */
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            background-color: #f9f9f9;
+        }
+
+        .right-panel {
+            width: calc(100% - 320px); /* 좌측 패널(300px) + gap(20px)을 제외한 나머지 */
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            background-color: #fff;
+        }
+
+
+        
+        .dropdown {
+            width: 100%;
+            padding: 10px;
+            font-size: 14px;
+        }
+
+
+        .reset-button {
+            background-color: #ff4d4d;
+            color: white;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            width: 100%;
+            margin-top: 10px;
+        }
+        
+        .map-container, #map {
+            width: 100%;
+            height: 400px;
+            margin-top: 20px;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+        }
+
+        .info-container {
+            padding: 20px;
+            background-color: #ecf0f1;
+            color: #2c3e50;
+            border-radius: 12px;
+            margin-top: 20px;
+        }
+
+        .info-container p {
+            margin: 10px 0;
+            font-size: 18px;
+        }
+
+        .splide {
+            margin-top: 20px;
+        }
+
+        .splide__slide img {
+            width: 100%;
+            height: 400px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+    </style>
+
+    <script>
+        function updateSelection(selectElement, level) {
+            let selectedValue = selectElement.value;
+            let url = new URL(window.location.href);
+
+            if (level === 'city') {
+                url.searchParams.set('city_code', selectedValue);
+                url.searchParams.delete('district_code');
+                url.searchParams.delete('neighborhood_code');
+                url.searchParams.delete('apt_code');
+            } else if (level === 'district') {
+                url.searchParams.set('district_code', selectedValue);
+                url.searchParams.delete('neighborhood_code');
+                url.searchParams.delete('apt_code');
+            } else if (level === 'neighborhood') {
+                url.searchParams.set('neighborhood_code', selectedValue);
+                url.searchParams.delete('apt_code');
+            } else if (level === 'apt') {
+                url.searchParams.set('apt_code', selectedValue);
+                
+                // 선택한 아파트 정보 가져와서 info-container 업데이트
+                let selectedOption = selectElement.options[selectElement.selectedIndex];
+                let aptName = selectedOption.text;
+                let aptInfo = JSON.parse(selectElement.dataset.aptInfo)[selectedValue];
+
+                document.querySelector('.info-container').innerHTML = `
+                    <p><strong>아파트명:</strong> ${aptName}</p>
+                    <p><strong>주소:</strong> ${aptInfo.address}</p>
+                    <p><strong>총세대수:</strong> ${aptInfo.totalHousehold} 세대</p>
+                    <p><strong>전체동수:</strong> ${aptInfo.totalDong} 개동</p>
+                    <p><strong>준공년도:</strong> ${aptInfo.approveYear} 년도</p>
+                    <p><strong>면적범위:</strong> ${aptInfo.minArea}m<sup>3</sup> ~ ${aptInfo.maxArea}m<sup>3</sup></p>
+                `;
+            }
+
+            window.location.href = url.toString();
+        }
+
+
+        function resetFilters() {
+            window.location.href = "{% url 'location_selector' %}";
+        }
+        function initMap() {
+            var container = document.getElementById('map');
+            var options = {
+                center: new kakao.maps.LatLng(37.5665, 126.9780), // 기본 서울 위치
+                level: 5
+            };
+
+            var map = new kakao.maps.Map(container, options);
+            var infoContainer = document.querySelector('.info-container');
+            var splideList = document.querySelector('.splide__list'); // 사진 목록
+            var splideInstance;
+
+            // Splide 초기화
+            function initializeSplide() {
+                if (splideInstance) {
+                    splideInstance.destroy(); // 기존 인스턴스 제거
+                }
+                splideInstance = new Splide('.splide', {
+                    type: 'loop',
+                    perPage: 1,
+                    arrows: true,
+                    pagination: true,
+                }).mount();
+            }
+
+            {% if selected_apt %}
+                var bounds = new kakao.maps.LatLngBounds();
+                var aptPhotos = {}; // 아파트별 사진 데이터 저장
+
+                {% for apt in selected_apt %}
+                    aptPhotos["{{ apt.complexNo }}"] = [
+                        {% for photo in apt.apt_photo %}
+                            "{{ photo.imageSrc }}"{% if not forloop.last %}, {% endif %}
+                        {% endfor %}
+                    ];
+                {% endfor %}
+
+                {% for apt in selected_apt %}
+                    (function() {
+                        var aptId = "{{ apt.complexNo }}";
+                        var aptName = "{{ apt.complexName }}";
+                        var address = "{{ apt.roadAddressPrefix }} {{ apt.roadAddress }}";
+                        var totalHousehold = "{{ apt.totalHouseholdCount }}";
+                        var totalDong = "{{ apt.totalDongCount }}";
+                        var approveYear = "{{ apt.useApproveYmd }}";
+                        var minArea = "{{ apt.minSupplyArea }}";
+                        var maxArea = "{{ apt.maxSupplyArea }}";
+
+                        var markerPosition = new kakao.maps.LatLng({{ apt.latitude }}, {{ apt.longitude }});
+                        var marker = new kakao.maps.Marker({ position: markerPosition });
+                        marker.setMap(map);
+                        bounds.extend(markerPosition);
+
+                        var infowindow = new kakao.maps.InfoWindow({
+                            content: '<div style="padding:10px; white-space:nowrap; font-size:14px; text-align:center;">' + aptName  + '</div>'
+                        });
+
+                        kakao.maps.event.addListener(marker, 'mouseover', function() { infowindow.open(map, marker); });
+                        kakao.maps.event.addListener(marker, 'mouseout', function() { infowindow.close(); });
+
+                        // 마커 클릭 시 지도 중심 이동 및 사진 변경
+                        kakao.maps.event.addListener(marker, 'click', function() {
+                            map.setCenter(markerPosition);
+                            map.setLevel(3);
+
+                            // 아파트 정보 업데이트
+                            infoContainer.innerHTML = `
+                                <p><strong>아파트명:</strong> ${aptName}</p>
+                                <p><strong>주소:</strong> ${address}</p>
+                                <p><strong>총세대수:</strong> ${totalHousehold} 세대</p>
+                                <p><strong>전체동수:</strong> ${totalDong} 개동</p>
+                                <p><strong>준공년도:</strong> ${approveYear} 년도</p>
+                                <p><strong>면적범위:</strong> ${minArea}m<sup>3</sup> ~ ${maxArea}m<sup>3</sup></p>
+                            `;
+
+                            // 사진 변경
+                            splideList.innerHTML = ""; // 기존 사진 초기화
+                            if (aptPhotos[aptId] && aptPhotos[aptId].length > 0) {
+                                aptPhotos[aptId].forEach(function(photoSrc) {
+                                    let li = document.createElement("li");
+                                    li.classList.add("splide__slide");
+                                    li.innerHTML = `<img src="${photoSrc}" alt="아파트 사진">`;
+                                    splideList.appendChild(li);
+                                });
+                            } else {
+                                let li = document.createElement("li");
+                                li.classList.add("splide__slide");
+                                // li.innerHTML = `<img src="https://via.placeholder.com/400" alt="사진 없음">`;
+                                splideList.appendChild(li);
+                            }
+
+                            // Splide 다시 초기화
+                            initializeSplide();
+                        });
+                    })();
+                {% endfor %}
+
+                map.setBounds(bounds);
+                initializeSplide(); // 초기 Splide 실행
+            {% endif %}
+        }
+        
+        // document.addEventListener("DOMContentLoaded", function () {
+        //     new Splide('.splide', {
+        //         type: 'loop',
+        //         perPage: 1,
+        //         arrows: true,
+        //         pagination: true,
+        //     }).mount();
+        // });
+    </script>
+</head>
+
+<body onload="initMap()">
+    <!-- 네비게이션 바 -->
+    <nav>
+        <div class="logo">아파트 투자 도우미</div>
+        <ul>
+            <li><a href="{% url 'main_page'%}">메인페이지</a></li>
+            <li><a href="{% url 'apt_list'%}">투자매물탐색</a></li>
+            <li><a href="{% url 'location_selector'%}">아파트검색</a></li>
+            <li><a href="{% url 'map'%}">아파트지도</a></li>            
+            <li><a href="{% url 'region_graph'%}">아파트그래프</a></li>
+        </ul>
+    </nav>
+
+
+    <div class="container">
+        <!-- 왼쪽 패널 -->
+        <div class="left-panel">
+            <h2>도시 목록</h2>
+            <select class="dropdown" onchange="updateSelection(this, 'city');">
+                <option value="">도시 선택</option>
+                {% for city in cities %}
+                    <option value="{{ city.city_code }}" {% if selected_city and selected_city.city_code == city.city_code %}selected{% endif %}>
+                        {{ city.city_name }}
+                    </option>
+                {% endfor %}
+            </select>
+
+            <h2>시군구 목록</h2>
+            <select class="dropdown" onchange="updateSelection(this, 'district');">
+                <option value="">시군구 선택</option>
+                {% for district in districts %}
+                    <option value="{{ district.district_code }}" {% if selected_district and selected_district.district_code == district.district_code %}selected{% endif %}>
+                        {{ district.district_name }}
+                    </option>
+                {% endfor %}
+            </select>
+
+            <h2>읍면동 목록</h2>
+            <select class="dropdown" onchange="updateSelection(this, 'neighborhood');">
+                <option value="">읍면동 선택</option>
+                {% for neighborhood in neighborhoods %}
+                    <option value="{{ neighborhood.location_code.cortarNo }}" {% if selected_neighborhood and selected_neighborhood.location_code.cortarNo == neighborhood.location_code.cortarNo %}selected{% endif %}>
+                        {{ neighborhood.neighborhood_name }}
+                    </option>
+                {% endfor %}
+            </select>
+
+            <h2>아파트 목록</h2>
+            <select class="dropdown" onchange="updateSelection(this, 'apt');" 
+                data-apt-info='{
+                    {% for apt in selected_apt %}
+                        "{{ apt.complexNo }}": {
+                            "address": "{{ apt.roadAddressPrefix }} {{ apt.roadAddress }}",
+                            "totalHousehold": "{{ apt.totalHouseholdCount }}",
+                            "totalDong": "{{ apt.totalDongCount }}",
+                            "approveYear": "{{ apt.useApproveYmd }}",
+                            "minArea": "{{ apt.minSupplyArea }}",
+                            "maxArea": "{{ apt.maxSupplyArea }}"
+                        }
+                        {% if not forloop.last %}, {% endif %}
+                    {% endfor %}
+                }'>
+            <option value="">아파트 선택</option>
+            {% for apt in selected_apt %}
+                <option value="{{ apt.complexNo }}" {% if selected_apt_code == apt.complexNo|stringformat:"s" %}selected{% endif %}>
+                    {{ apt.complexName }}
+                </option>
+            {% endfor %}
+         </select>
+    
+    
+
+            <button class="reset-button" onclick="resetFilters()">필터 초기화</button>
+        </div>
+
+        <!-- 오른쪽 패널 -->
+        <div class="right-panel">
+            <h2>지도</h2>
+            <div id="map"></div>
+            <h2>아파트정보</h2>
+            <div class="info-container">
+                <p><strong>주소:</strong> {{ apt.roadAddressPrefix }} {{ apt.roadAddress }}</p>
+                <p><strong>총세대수:</strong> {{ apt.totalHouseholdCount }} 세대</p>
+                <p><strong>전체동수:</strong> {{ apt.totalDongCount }}개동</p>
+                <p><strong>준공년도:</strong> {{ apt.useApproveYmd }}년도</p>
+                <p><strong>면적범위:</strong> {{ apt.minSupplyArea }}m<sup>3</sup> ~ {{ apt.maxSupplyArea }}m<sup>3</sup></p>
+            </div>
+            <h2>아파트이미지</h2>
+            <div class="splide">
+                <div class="splide__track">
+                    <ul class="splide__list">
+                        {% for photo in apt_photo %}
+                        <li class="splide__slide">
+                            <img src="{{ photo.imageSrc }}" alt="{{ photo.smallCategoryName }}">
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+
