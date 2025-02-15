@@ -5,9 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ apt_list.complexName }}</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@splidejs/splide@latest/dist/css/splide.min.css">
-    <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=330c7a084d665fce38080fb6e0a4c493"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@splidejs/splide@latest/dist/js/splide.min.js"></script>
-
     <style>
         /* box-sizing을 border-box로 설정하여 padding과 border가 크기에 영향을 미치지 않도록 함 */
         *, *::before, *::after {
@@ -140,164 +137,85 @@
             object-fit: cover;
             border-radius: 8px;
         }
-    </style>
 
-    <script>
-        function updateSelection(selectElement, level) {
-            let selectedValue = selectElement.value;
-            let url = new URL(window.location.href);
 
-            if (level === 'city') {
-                url.searchParams.set('city_code', selectedValue);
-                url.searchParams.delete('district_code');
-                url.searchParams.delete('neighborhood_code');
-                url.searchParams.delete('apt_code');
-            } else if (level === 'district') {
-                url.searchParams.set('district_code', selectedValue);
-                url.searchParams.delete('neighborhood_code');
-                url.searchParams.delete('apt_code');
-            } else if (level === 'neighborhood') {
-                url.searchParams.set('neighborhood_code', selectedValue);
-                url.searchParams.delete('apt_code');
-            } else if (level === 'apt') {
-                url.searchParams.set('apt_code', selectedValue);
+        /* 이미지 상단에 텍스트 배치 */
+        /* 텍스트 스타일 (이미지 상단에 배치) */
+        .splide__slide p {
+            position: absolute;
+            top: 10px; /* 이미지 상단에서 10px 아래로 */
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.5); /* 반투명 배경 */
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            text-align: center;
+            width: auto;
+            max-width: 80%;
+        }
                 
-                // 선택한 아파트 정보 가져와서 info-container 업데이트
-                let selectedOption = selectElement.options[selectElement.selectedIndex];
-                let aptName = selectedOption.text;
-                let aptInfo = JSON.parse(selectElement.dataset.aptInfo)[selectedValue];
-
-                document.querySelector('.info-container').innerHTML = `
-                    <p><strong>아파트명:</strong> ${aptName}</p>
-                    <p><strong>주소:</strong> ${aptInfo.address}</p>
-                    <p><strong>총세대수:</strong> ${aptInfo.totalHousehold} 세대</p>
-                    <p><strong>전체동수:</strong> ${aptInfo.totalDong} 개동</p>
-                    <p><strong>준공년도:</strong> ${aptInfo.approveYear} 년도</p>
-                    <p><strong>면적범위:</strong> ${aptInfo.minArea}m<sup>3</sup> ~ ${aptInfo.maxArea}m<sup>3</sup></p>
-                `;
-            }
-
-            window.location.href = url.toString();
+        .splide__slide {
+            position : relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 400px; /* 이미지와 동일한 높이 설정 */
         }
 
 
-        function resetFilters() {
-            window.location.href = "{% url 'location_selector' %}";
+        table {
+        width: 100%;
+        border-collapse: collapse;
         }
-        function initMap() {
-            var container = document.getElementById('map');
-            var options = {
-                center: new kakao.maps.LatLng(37.5665, 126.9780), // 기본 서울 위치
-                level: 5
-            };
+        th, td {
+            border: 1px solid #ccc; /* 선을 가늘게 설정 */
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #f4f4f4; /* 헤더에 배경색 추가 */
+        }
 
-            var map = new kakao.maps.Map(container, options);
-            var infoContainer = document.querySelector('.info-container');
-            var splideList = document.querySelector('.splide__list'); // 사진 목록
-            var splideInstance;
 
-            // Splide 초기화
-            function initializeSplide() {
-                if (splideInstance) {
-                    splideInstance.destroy(); // 기존 인스턴스 제거
+    </style>
+        <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=330c7a084d665fce38080fb6e0a4c493"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@splidejs/splide@latest/dist/js/splide.min.js"></script>
+        <script>
+            
+            function updateSelection(selectElement, level) {
+                let selectedValue = selectElement.value;
+                let url = new URL(window.location.href);
+
+                if (level === 'city') {
+                    url.searchParams.set('city_code', selectedValue);
+                    url.searchParams.delete('district_code');
+                    url.searchParams.delete('neighborhood_code');
+                    url.searchParams.delete('apt_code');
+                } else if (level === 'district') {
+                    url.searchParams.set('district_code', selectedValue);
+                    url.searchParams.delete('neighborhood_code');
+                    url.searchParams.delete('apt_code');
+                } else if (level === 'neighborhood') {
+                    url.searchParams.set('neighborhood_code', selectedValue);
+                    url.searchParams.delete('apt_code');
+                } else if (level === 'apt') {
+                    url.searchParams.set('apt_code', selectedValue);
                 }
-                splideInstance = new Splide('.splide', {
-                    type: 'loop',
-                    perPage: 1,
-                    arrows: true,
-                    pagination: true,
-                }).mount();
+
+                window.location.href = url.toString();
             }
 
-            {% if selected_apt %}
-                var bounds = new kakao.maps.LatLngBounds();
-                var aptPhotos = {}; // 아파트별 사진 데이터 저장
 
-                {% for apt in selected_apt %}
-                    aptPhotos["{{ apt.complexNo }}"] = [
-                        {% for photo in apt.apt_photo %}
-                            "{{ photo.imageSrc }}"{% if not forloop.last %}, {% endif %}
-                        {% endfor %}
-                    ];
-                {% endfor %}
-
-                {% for apt in selected_apt %}
-                    (function() {
-                        var aptId = "{{ apt.complexNo }}";
-                        var aptName = "{{ apt.complexName }}";
-                        var address = "{{ apt.roadAddressPrefix }} {{ apt.roadAddress }}";
-                        var totalHousehold = "{{ apt.totalHouseholdCount }}";
-                        var totalDong = "{{ apt.totalDongCount }}";
-                        var approveYear = "{{ apt.useApproveYmd }}";
-                        var minArea = "{{ apt.minSupplyArea }}";
-                        var maxArea = "{{ apt.maxSupplyArea }}";
-
-                        var markerPosition = new kakao.maps.LatLng({{ apt.latitude }}, {{ apt.longitude }});
-                        var marker = new kakao.maps.Marker({ position: markerPosition });
-                        marker.setMap(map);
-                        bounds.extend(markerPosition);
-
-                        var infowindow = new kakao.maps.InfoWindow({
-                            content: '<div style="padding:10px; white-space:nowrap; font-size:14px; text-align:center;">' + aptName  + '</div>'
-                        });
-
-                        kakao.maps.event.addListener(marker, 'mouseover', function() { infowindow.open(map, marker); });
-                        kakao.maps.event.addListener(marker, 'mouseout', function() { infowindow.close(); });
-
-                        // 마커 클릭 시 지도 중심 이동 및 사진 변경
-                        kakao.maps.event.addListener(marker, 'click', function() {
-                            map.setCenter(markerPosition);
-                            map.setLevel(3);
-
-                            // 아파트 정보 업데이트
-                            infoContainer.innerHTML = `
-                                <p><strong>아파트명:</strong> ${aptName}</p>
-                                <p><strong>주소:</strong> ${address}</p>
-                                <p><strong>총세대수:</strong> ${totalHousehold} 세대</p>
-                                <p><strong>전체동수:</strong> ${totalDong} 개동</p>
-                                <p><strong>준공년도:</strong> ${approveYear} 년도</p>
-                                <p><strong>면적범위:</strong> ${minArea}m<sup>3</sup> ~ ${maxArea}m<sup>3</sup></p>
-                            `;
-
-                            // 사진 변경
-                            splideList.innerHTML = ""; // 기존 사진 초기화
-                            if (aptPhotos[aptId] && aptPhotos[aptId].length > 0) {
-                                aptPhotos[aptId].forEach(function(photoSrc) {
-                                    let li = document.createElement("li");
-                                    li.classList.add("splide__slide");
-                                    li.innerHTML = `<img src="${photoSrc}" alt="아파트 사진">`;
-                                    splideList.appendChild(li);
-                                });
-                            } else {
-                                let li = document.createElement("li");
-                                li.classList.add("splide__slide");
-                                // li.innerHTML = `<img src="https://via.placeholder.com/400" alt="사진 없음">`;
-                                splideList.appendChild(li);
-                            }
-
-                            // Splide 다시 초기화
-                            initializeSplide();
-                        });
-                    })();
-                {% endfor %}
-
-                map.setBounds(bounds);
-                initializeSplide(); // 초기 Splide 실행
-            {% endif %}
-        }
-        
-        // document.addEventListener("DOMContentLoaded", function () {
-        //     new Splide('.splide', {
-        //         type: 'loop',
-        //         perPage: 1,
-        //         arrows: true,
-        //         pagination: true,
-        //     }).mount();
-        // });
-    </script>
+            function resetFilters() {
+                window.location.href = "{% url 'location_selector' %}";
+            }
+        </script>
 </head>
 
-<body onload="initMap()">
+<body>
     <!-- 네비게이션 바 -->
     <nav>
         <div class="logo">아파트 투자 도우미</div>
@@ -345,59 +263,97 @@
             </select>
 
             <h2>아파트 목록</h2>
-            <select class="dropdown" onchange="updateSelection(this, 'apt');" 
-                data-apt-info='{
-                    {% for apt in selected_apt %}
-                        "{{ apt.complexNo }}": {
-                            "address": "{{ apt.roadAddressPrefix }} {{ apt.roadAddress }}",
-                            "totalHousehold": "{{ apt.totalHouseholdCount }}",
-                            "totalDong": "{{ apt.totalDongCount }}",
-                            "approveYear": "{{ apt.useApproveYmd }}",
-                            "minArea": "{{ apt.minSupplyArea }}",
-                            "maxArea": "{{ apt.maxSupplyArea }}"
-                        }
-                        {% if not forloop.last %}, {% endif %}
-                    {% endfor %}
-                }'>
-            <option value="">아파트 선택</option>
-            {% for apt in selected_apt %}
-                <option value="{{ apt.complexNo }}" {% if selected_apt_code == apt.complexNo|stringformat:"s" %}selected{% endif %}>
-                    {{ apt.complexName }}
-                </option>
-            {% endfor %}
-         </select>
-    
-    
-
+            <select class="dropdown" onchange="updateSelection(this, 'apt');">
+                <option value="">아파트 선택</option>
+                {% for apt in selected_apt %}
+                    <option value="{{ apt.complexNo }}" {% if selected_apt_code == apt.complexNo|stringformat:"s" %}selected{% endif %}>
+                        {{ apt.complexName }}
+                    </option>
+                {% endfor %}
+            </select>
+            </select>
             <button class="reset-button" onclick="resetFilters()">필터 초기화</button>
         </div>
 
         <!-- 오른쪽 패널 -->
-        <div class="right-panel">
-            <h2>지도</h2>
-            <div id="map"></div>
-            <h2>아파트정보</h2>
-            <div class="info-container">
-                <p><strong>주소:</strong> {{ apt.roadAddressPrefix }} {{ apt.roadAddress }}</p>
-                <p><strong>총세대수:</strong> {{ apt.totalHouseholdCount }} 세대</p>
-                <p><strong>전체동수:</strong> {{ apt.totalDongCount }}개동</p>
-                <p><strong>준공년도:</strong> {{ apt.useApproveYmd }}년도</p>
-                <p><strong>면적범위:</strong> {{ apt.minSupplyArea }}m<sup>3</sup> ~ {{ apt.maxSupplyArea }}m<sup>3</sup></p>
-            </div>
-            <h2>아파트이미지</h2>
-            <div class="splide">
-                <div class="splide__track">
-                    <ul class="splide__list">
+        <!-- 오른쪽 패널 -->
+<div class="right-panel">
+    {% if selected_apt_code %}
+        <h2>{{apt.complexName}}</h2>
+        
+        <!-- 아파트 사진 슬라이더 (INFO 상단으로 이동) -->
+        <div class="splide">
+            <div class="splide__track">
+                <ul class="splide__list">
+                    {% if apt_photo %}
                         {% for photo in apt_photo %}
                         <li class="splide__slide">
+                            <p>{{ photo.smallCategoryName }}</p>
+
                             <img src="{{ photo.imageSrc }}" alt="{{ photo.smallCategoryName }}">
+                            <!-- <bottom>{{ photo.explaination }}</bottom> -->
                         </li>
                         {% endfor %}
-                    </ul>
-                </div>
+                    {% else %}
+                        <li class="splide__slide">
+                            <p>아파트 이미지가 없습니다.</p>
+                        </li>
+                    {% endif %}
+                </ul>
             </div>
         </div>
-    </div>
+        
+        <!-- 아파트 정보 -->
+        <div class="info-container">
+            <p><strong>{{ apt.complexName }}</strong> </p>
+            <p><strong>주소:</strong> {{ apt.roadAddressPrefix }} {{ apt.roadAddress }}</p>
+            <p><strong>총세대수:</strong> {{ apt.totalHouseholdCount }} 세대</p>
+            <p><strong>전체동수:</strong> {{ apt.totalDongCount }}개동</p>
+            <p><strong>준공년도:</strong> {{ apt.useApproveYmd }}년도</p>
+            <p><strong>면적범위:</strong> {{ apt.minSupplyArea }}m<sup>3</sup> ~ {{ apt.maxSupplyArea }}m<sup>3</sup></p>
+            <p><strong>전용면적별 세부정보</strong></p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>면적 (m²)</th>
+                        <th>상세 정보</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for area in apt_detail %}
+                    <tr>
+                        <td>{{ area.exclusiveArea|floatformat:1 }} m²</td>
+                        <td>
+                            <a href="{% url 'apt_detail' area.complexno_py %}">상세 보기</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <script>
+            // Splide 슬라이더 초기화
+            new Splide('.splide', {
+                type: 'loop',
+                perPage: 1,
+                // autoplay: true,
+                // interval: 3000,
+                arrows: true,
+                pagination: true,
+            }).mount();
+        </script>
+    {% else %}
+        <div class="splide">
+            <p>"좌측의 아파트를 선택하세요"</p>
+        </div>  
+
+        <div class="info-container">
+            <p>"좌측의 아파트를 선택하세요"</p>
+        </div>
+    {% endif %}
+
+        
 </body>
 </html>
 

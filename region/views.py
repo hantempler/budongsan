@@ -27,7 +27,7 @@ from .models import City, District, Neighborhood
 from apt.models import Apt_list
 from django.shortcuts import render, get_object_or_404
 from .models import City, District, Neighborhood
-from apt.models import Apt_list, Apt_detail
+from apt.models import Apt_list
 
 # Create your views here.
 
@@ -203,10 +203,8 @@ def region_map(request):
     
     print(selected_data)
     selected_df = selected_df[["date", "name", "value", "change"]]
-    selected_df["value"] = round(selected_df["value"], 1)
     selected_df.columns = ["기준시점", "대상지역", f'{selected_data}', "변화율(%)"]
     selected_df["변화율(%)"] = round(selected_df["변화율(%)"], 1)
-
 
     # context에 추가
     context = {
@@ -226,17 +224,22 @@ def region_map(request):
     return render(request, 'region_map.html', context)
 
 
+from django.shortcuts import render, get_object_or_404
+from django.db.models import OuterRef, Subquery
 
 def location_selector(request):
     cities = City.objects.all()
     selected_city = None
     selected_district = None
     selected_neighborhood = None
-    apt = None
+    selected_apt_code = None
     selected_apt = []
     districts = []
     neighborhoods = []
-    apt = []
+    apt = None
+    apt_photo = []
+    apt_detail = []
+
     # URL 파라미터 가져오기
     city_code = request.GET.get('city_code')
     district_code = request.GET.get('district_code')
@@ -247,7 +250,6 @@ def location_selector(request):
     print("District Code:", district_code)
     print("Neighborhood Code:", neighborhood_code)
     print("Selected Apt Code:", apt_code)
-
 
     if city_code:
         selected_city = get_object_or_404(City, city_code=city_code)
@@ -263,11 +265,10 @@ def location_selector(request):
 
     if apt_code:
         apt = get_object_or_404(Apt_list, complexNo=apt_code)
-
-    apt_photo = Apt_photo.objects.filter(imageKey = apt_code)
-    apt_detail = Apt_detail.objects.filter(complexNo = apt_code)
-    print(apt)
-
+        selected_apt_code = apt_code  # 선택한 아파트 코드 저장
+        apt_photo = Apt_photo.objects.filter(imageKey=apt_code)
+        apt_detail = Apt_detail.objects.filter(complexNo=apt_code)
+      
     return render(request, 'location_selector.html', {
         'cities': cities,
         'districts': districts,
@@ -275,11 +276,13 @@ def location_selector(request):
         'selected_city': selected_city,
         'selected_district': selected_district,
         'selected_neighborhood': selected_neighborhood,
-        'selected_apt' : selected_apt,
-        'apt' : apt,
-        'apt_detail' : apt_detail,
-        'apt_photo' : apt_photo
+        'selected_apt': selected_apt,
+        'selected_apt_code': selected_apt_code,  # 선택된 아파트 코드 추가
+        'apt': apt,
+        'apt_detail': apt_detail,
+        'apt_photo': apt_photo
     })
+
 
 
 
@@ -341,7 +344,7 @@ def region_graph(request):
 
 
     # 매매지수 그래프 생성
-    plt.figure(figsize=(9, 5))
+    plt.figure(figsize=(10, 6))
     plt.plot(
         df_location_0['date'], df_location_0['jisu'],
         marker='', linestyle='--', color='b', label=f'{location_0.name} 매매지수'
@@ -366,7 +369,7 @@ def region_graph(request):
     plt.close()
 
     # 전세지수 그래프 생성
-    plt.figure(figsize=(9, 5))
+    plt.figure(figsize=(10, 6))
     plt.plot(
         df_location_0['date'], df_location_0['jeonse_jisu'],
         marker='', linestyle='--', color='g', label=f'{location_0.name} 전세지수'

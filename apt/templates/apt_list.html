@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>아파트리스트</title>
+    <title>검색결과</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -141,7 +141,7 @@
 <body>
 
     <nav>
-        <div class="logo">아파트 투자 도우미</div>
+        <div class="logo">그냥 만들어본 것</div>
         <ul>
             <li><a href="{% url 'main_page'%}">메인페이지</a></li>
             <li><a href="{% url 'apt_list'%}">투자매물탐색</a></li>
@@ -198,7 +198,7 @@
                 <thead>
                     <tr>
                         <th>단지명</th>
-
+                        <th>평형명</th>
                         <th>전용면적</th>
                         <th>준공년도</th>
                         <th>총세대수</th>
@@ -219,7 +219,7 @@
                                         {{ apt_info.apt.complexName }}
                                     </a>
                                 </td>
-
+                                <td>{{ detail.detail.pyeongName }}</td>
                                 <td>
                                     <a href="{% url 'apt_detail' detail.detail.complexno_py %}">                         
                                         {{ detail.detail.exclusiveArea|floatformat:1 }}m<sup>3</sup></td>
