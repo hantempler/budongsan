@@ -37,9 +37,12 @@ def region_info(request):
 def region_map(request):
     # 현재 날짜 기준으로 기본값 설정
     today = pd.to_datetime('today')
+    default_year = today.year
+    default_month = today.month - 1 if today.month > 1 else 12  # 1월이면 전년도 12월로 설정
+    default_year = today.year if today.month > 1 else today.year - 1  # 1월이면 전년도 적용
     print(today)
-    selected_year = request.GET.get('year', 2024)  # 연도 기본값: 오늘의 연도
-    selected_month = request.GET.get('month', 12)  # 월 기본값: 오늘의 월
+    selected_year = request.GET.get('year', default_year)  # 연도 기본값: 오늘의 연도
+    selected_month = request.GET.get('month', default_month)  # 월 기본값: 오늘의 월
 
     # 연도와 월을 결합하여 selected_date 생성
     selected_date = f"{selected_year}-{str(selected_month).zfill(2)}"
@@ -175,36 +178,65 @@ def region_map(request):
     selected_df = selected_df.sort_values(by="change")  # 변화율 기준 정렬
     print(len(selected_df))
 
-    plt.figure(figsize=(10, 30))
-    colors = selected_df["change"].apply(lambda x: 'red' if x < 0 else 'blue')
+    positive_df = selected_df[selected_df["change"]>=0]
+    positive_df = positive_df.sort_values(by="change", ascending=False).head(20)
 
-    plt.barh(
-        selected_df["name"], selected_df["change"], 
-        color=colors, alpha=0.7
-    )
 
-    # 0 기준선 추가
-    plt.axvline(0, color='black', linewidth=1.2)
+    negative_df = selected_df[selected_df["change"]<0]
+    negative_df = negative_df .sort_values(by="change").head(20)
 
+    print(positive_df)
+    print(negative_df)
+
+    # 첫 번째 그래프 (Positive)
+    plt.figure(figsize=(10, 10))
+    plt.barh(positive_df["name"], positive_df["change"], color='blue', alpha=0.7)
+    plt.axvline(0, color='black', linewidth=1.2)  # 0 기준선
     plt.xlabel('변화율 (%)', fontsize=12)
     plt.ylabel('지역 코드', fontsize=12)
-    plt.title(f'{selected_data} 변화율', fontsize=14)
-    plt.gca().invert_yaxis()  # 상위 지역이 위쪽에 오도록 변경
+    plt.title(f'{selected_data} (양수 변화율)', fontsize=14)
+    plt.gca().invert_yaxis()
     plt.grid(axis='x', linestyle='--', alpha=0.5)
     plt.tight_layout()
 
-    # 이미지 저장
-    buf = BytesIO()
-    plt.savefig(buf, format='png')
-    buf.seek(0)
-    img_str = base64.b64encode(buf.getvalue()).decode('utf-8')
-    buf.close()
+    # 이미지 저장 (Positive)
+    buf1 = BytesIO()
+    plt.savefig(buf1, format='png')
+    buf1.seek(0)
+    img_str1 = base64.b64encode(buf1.getvalue()).decode('utf-8')
+    buf1.close()
     plt.close()
-    
-    print(selected_data)
-    selected_df = selected_df[["date", "name", "value", "change"]]
-    selected_df.columns = ["기준시점", "대상지역", f'{selected_data}', "변화율(%)"]
-    selected_df["변화율(%)"] = round(selected_df["변화율(%)"], 1)
+
+    # 두 번째 그래프 (Positive)
+    plt.figure(figsize=(10, 10))
+    plt.barh(negative_df["name"], negative_df["change"], color='red', alpha=0.7)
+    plt.axvline(0, color='black', linewidth=1.2)  # 0 기준선
+    plt.xlabel('변화율 (%)', fontsize=12)
+    plt.ylabel('지역 코드', fontsize=12)
+    plt.title(f'{selected_data} (양수 변화율)', fontsize=14)
+    plt.gca().invert_yaxis()
+    plt.grid(axis='x', linestyle='--', alpha=0.5)
+    plt.tight_layout()
+
+    # 이미지 저장 (Positive)
+    buf1 = BytesIO()
+    plt.savefig(buf1, format='png')
+    buf1.seek(0)
+    img_str2 = base64.b64encode(buf1.getvalue()).decode('utf-8')
+    buf1.close()
+    plt.close()
+   
+
+    positive_df = positive_df[["date", "name", "value", "change"]]
+    positive_df.columns = ["기준시점", "대상지역", f'{selected_data}', "변화율(%)"]
+    positive_df[f"{selected_data}"] = round(positive_df[f"{selected_data}"], 1)
+    positive_df["변화율(%)"] = round(positive_df["변화율(%)"], 1)
+
+
+    negative_df = negative_df[["date", "name", "value", "change"]]
+    negative_df.columns = ["기준시점", "대상지역", f'{selected_data}', "변화율(%)"]
+    negative_df[f"{selected_data}"] = round(negative_df[f"{selected_data}"], 1)
+    negative_df["변화율(%)"] = round(negative_df["변화율(%)"], 1)
 
     # context에 추가
     context = {
@@ -212,13 +244,16 @@ def region_map(request):
         'map_path': map_path,
         'date': selected_date,
         'data_type': selected_data,
-        'selected_table' : selected_df.to_html(classes="table table-striped", index=False),
+        'selected_table_1' : positive_df.to_html(classes="table table-striped", index=False),
+        'selected_table_2' : negative_df.to_html(classes="table table-striped", index=False),
+
         # 'purchase_jisu': purchase_jisu.to_html(classes="table table-striped", index=False),
         # 'jeonse_jisu': jeonse_jisu.to_html(classes="table table-striped", index=False),
         # 'purchase_py': purchase_py.to_html(classes="table table-striped", index=False),
         # 'jeonse_py': jeonse_py.to_html(classes="table table-striped", index=False),
         # 'jeonse_py': jeonse_py.to_html(classes="table table-striped", index=False),
-        'graph_image': img_str  # 🔹 그래프 추가
+        'graph_image_1': img_str1,  # 🔹 그래프 추가
+        'graph_image_2': img_str2  # 🔹 그래프 추가
     }
     
     return render(request, 'region_map.html', context)

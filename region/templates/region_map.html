@@ -183,7 +183,9 @@
         </div>
         <div class="table-container">
             <h2>{{ data_type }}</h2>
-            {{ selected_table | safe}}
+            {{ selected_table_1 | safe}}
+            <h2>{{ data_type }}</h2>         
+            {{ selected_table_2 | safe}}
             <!-- {% if data_type == "purchase_jisu" %}
                 {{ purchase_jisu|safe }}
             {% elif data_type == "purchase_jisu_change" %}
@@ -200,7 +202,8 @@
         </div>
         <div class="graph-container">
             <h3>{{ data_type }} 변화율</h3>
-            <img src="data:image/png;base64,{{ graph_image }}" alt="{{ data_type }} 변화율 그래프">
+            <img src="data:image/png;base64,{{ graph_image_1 }}" alt="{{ data_type }} 변화율 그래프">
+            <img src="data:image/png;base64,{{ graph_image_2 }}" alt="{{ data_type }} 변화율 그래프">
         </div>
     </div>
     <script>

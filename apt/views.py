@@ -172,15 +172,27 @@ def apt_detail(request, complexno_py):
     jeonses = Apt_jeonse.objects.filter(complexno_py=complexno_py)
 
     # pandas DataFrame으로 변환
+    
     df = pd.DataFrame(list(purchases.values('date', 'price')))
     df_1 = pd.DataFrame(list(jeonses.values('date', 'price')))
-    print(df_1)
+
+
+    # 거래 내역이 없을 경우 메시지를 context에 추가
+    if df.empty or df_1.empty:
+        context = {
+            'apt_list': apt_list_instance,
+            'apt_detail': apt_detail_instance,
+            'details': details,
+            'message': "검색하신 아파트의 거래내역이 없습니다.",
+            'latitude': apt_list_instance.latitude,
+            'longitude': apt_list_instance.longitude,
+        }
+        return render(request, 'apt_detail.html', context)
+
 
     # date 컬럼을 날짜 형식으로 변환
     df['date'] = pd.to_datetime(df['date'], format='%Y-%m-%d')
     df_1['date'] = pd.to_datetime(df_1['date'], format='%Y-%m-%d')
-    print(df)
-    print(df_1)
 
     # 연도-월로 그룹화하여 평균 가격 계산
     df['year_month'] = df['date'].dt.to_period('M')
